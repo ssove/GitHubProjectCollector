@@ -8,21 +8,19 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class GitHubRESTAPI {
-    public void get(String requestURL) {
+    public Response get(String requestURL) {
+        Response res = null;
         try {
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder()
                     .url(requestURL)
                     .build();
 
-            Response response = client.newCall(request).execute();
-
-            String message = response.body().string();
-            System.out.println(message);
+            res = client.newCall(request).execute();
         } catch (Exception e){
             System.err.println(e.toString());
         }
-
+        return res;
     }
 
 }
