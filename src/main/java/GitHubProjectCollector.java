@@ -1,5 +1,4 @@
-import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
+import okhttp3.Response;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -14,33 +13,68 @@ public class GitHubProjectCollector {
     public static final String REPO_SEARCH_API_URL = SEARCH_API_URL + "/repositories";
     public static final String REPO_DOWNLOAD_API_URL_PREFIX = API_SERVER + "/repos/";
     public static final String REPO_DOWNLOAD_API_URL_SUFFIX = "/tarball/";
+    public static final int MAX_REQUEST_PER_MIN = 30;
 
 
-    public boolean isPrivate(JSONObject project) {
+    private static boolean isPrivate(JSONObject project) {
         return (boolean) project.get("private");
     }
 
-    public static void main(String[] args) {
+    public static String constructRepositorySearchUrl(SearchOption searchOption) {
+        return REPO_SEARCH_API_URL
+                + "?q="         + searchOption.q()
+                + "&sort="      + searchOption.sort()
+                + "&order="     + searchOption.order()
+                + "&per_page="  + searchOption.itemsPerPage()
+                + "&page="      + searchOption.page();
+    }
+
+    public static String constructRepositoryDownloadUrl(String owner, String projectName) {
+        return GitHubProjectCollector.REPO_DOWNLOAD_API_URL_PREFIX + owner
+                + "/" + projectName + GitHubProjectCollector.REPO_DOWNLOAD_API_URL_SUFFIX;
+    }
+
+    public static JSONObject searchPublicProjects(SearchOption searchOption) throws IOException, ParseException {
+        String url = GitHubProjectCollector.constructRepositorySearchUrl(searchOption);
+        Response res = GitHubRESTAPI.get(url);
+
+        return (JSONObject) (new JSONParser()).parse(res.body().string());
+    }
+
+    public static void downloadPublicProjects(SearchOption searchOption, String destination) {
+        JSONObject jsonObject;
+
         try {
-            GitHubProjectCollector collector = new GitHubProjectCollector();
-            Response resCProjectsRetrieving = GitHubRESTAPI.get(collector.REPO_SEARCH_API_URL + "?q=stars:>=100+language:c+language:csharp+language:cpp&sort=stars&order=desc&per_page:100");
-            JSONParser jsonParser = new JSONParser();
-            JSONObject jsonObject = (JSONObject) jsonParser.parse(resCProjectsRetrieving.body().string());
-            JSONArray projects = (JSONArray) jsonObject.get("items");
-
-            for (int i = 0; i < 3000; i++) {
-                JSONObject project = (JSONObject) projects.get(i);
-
-                if (collector.isPrivate(project))
-                    continue;
-
-                JSONObject ownerInfo = (JSONObject) project.get("owner");
-                String owner = (String) ownerInfo.get("login");
-                String projectName = (String) project.get("name");
-                GitHubRESTAPI.downloadRepository(owner, projectName, "project/", owner + projectName + ".tar");
-            }
-        } catch (Exception e) {
+            jsonObject = searchPublicProjects(searchOption);
+        } catch (IOException | ParseException e) {
             e.printStackTrace();
+            return;
         }
+
+        Long totalCountOfSearchResults = (Long) jsonObject.get("total_count");
+        JSONArray projects = (JSONArray) jsonObject.get("items");
+
+        for (int i = 0; i < totalCountOfSearchResults / 3; i++) {
+            JSONObject project = (JSONObject) projects.get(i);
+
+            if (GitHubProjectCollector.isPrivate(project))
+                continue;
+
+            JSONObject ownerInfo = (JSONObject) project.get("owner");
+            String owner = (String) ownerInfo.get("login");
+            String projectName = (String) project.get("name");
+            String url = constructRepositoryDownloadUrl(owner, projectName);
+
+            GitHubRESTAPI.downloadRepository(url, destination, projectName + ".zip");
+        }
+    }
+
+    public static void main(String[] args) {
+        SearchOption searchOption = new SearchOption.Builder()
+                .q("stars:>=100+language:c+language:csharp+language:cpp")
+                .sort("stars")
+                .order("desc")
+                .build();
+        GitHubProjectCollector.downloadPublicProjects(searchOption, "project");
     }
 }

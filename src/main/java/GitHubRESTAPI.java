@@ -2,8 +2,6 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 public class GitHubRESTAPI {
     public static Response get(String requestUrl) {
@@ -23,7 +21,11 @@ public class GitHubRESTAPI {
 
     public static void downloadRepository(String owner, String projectName, String dir, String fileName) {
         String downloadUrl = GitHubProjectCollector.REPO_DOWNLOAD_API_URL_PREFIX + owner + "/" + projectName + GitHubProjectCollector.REPO_DOWNLOAD_API_URL_SUFFIX;
-        Response res = GitHubRESTAPI.get(downloadUrl);
+        downloadRepository(downloadUrl, dir, fileName);
+    }
+
+    public static void downloadRepository(String url, String dir, String fileName) {
+        Response res = GitHubRESTAPI.get(url);
         String fileUrl = res.request().url().toString();
 
         OkHttpClient client = new OkHttpClient();
@@ -42,7 +44,7 @@ class CallbackToDownloadFile implements Callback {
 
     public CallbackToDownloadFile(String directory, String fileName) {
         this.dir = new File(directory);
-        this.fileToBeDownloaded = new File(this.dir.getAbsolutePath() + File.separator + fileName);
+        this.fileToBeDownloaded = new File(this.dir + File.separator + fileName);
     }
 
     @Override
@@ -52,13 +54,11 @@ class CallbackToDownloadFile implements Callback {
 
     @Override
     public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-        if (!dir.exists()) {
+        if (!dir.exists())
             dir.mkdirs();
-        }
 
-        if (fileToBeDownloaded.exists()) {
+        if (fileToBeDownloaded.exists())
             fileToBeDownloaded.delete();
-        }
 
         try {
             fileToBeDownloaded.createNewFile();
