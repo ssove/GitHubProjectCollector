@@ -1,21 +1,22 @@
 public class SearchOption {
-    private final int minimumStars;
-    private final int maximumStars;
-    private final String[] languages;
+    private final String q;
+    private final String sort;
+    private final String order;
     private final int itemsPerPage;
     private final int page;
 
+
     private SearchOption(Builder builder) {
-        minimumStars    = builder.minimumStars;
-        maximumStars    = builder.maximumStars;
-        languages       = builder.languages.clone();
+        q               = builder.q;
+        sort            = builder.sort;
+        order           = builder.order;
         itemsPerPage    = builder.itemsPerPage;
         page            = builder.page;
     }
 
-    public int minimumStars()   { return minimumStars; }
-    public int maximumStars()   { return maximumStars; }
-    public String[] languages() { return languages; }
+    public String q()           { return q; }
+    public String sort()        { return sort; }
+    public String order()       { return order; }
     public int itemsPerPage()   { return itemsPerPage; }
     public int page()           { return page; }
 
@@ -23,24 +24,24 @@ public class SearchOption {
         // Required parameters
 
         // Optional parameters
-        private int minimumStars    = 0;
-        private int maximumStars    = 0;
-        private String[] languages  = null;
+        private String q = "";
+        private String sort         = "stars";
+        private String order        = "desc";
         private int itemsPerPage    = 30;
         private int page            = 1;
 
-        public Builder minimumStars(int val) {
-            minimumStars = val;
+        public Builder q(String val) {
+            q = val;
             return this;
         }
 
-        public Builder maximumStars(int val) {
-            maximumStars = val;
+        public Builder sort(String val) {
+            sort = val;
             return this;
         }
 
-        public Builder languages(String[] val) {
-            languages = val.clone();
+        public Builder order(String val) {
+            order = val;
             return this;
         }
 
