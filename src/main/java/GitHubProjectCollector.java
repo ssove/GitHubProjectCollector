@@ -4,7 +4,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.File;
 import java.io.IOException;
 
 public class GitHubProjectCollector {
@@ -15,10 +14,6 @@ public class GitHubProjectCollector {
     public static final String REPO_DOWNLOAD_API_URL_SUFFIX = "/tarball/";
     public static final int MAX_REQUEST_PER_MIN = 30;
 
-
-    private static boolean isPrivate(JSONObject project) {
-        return (boolean) project.get("private");
-    }
 
     public static String constructRepositorySearchUrl(SearchOption searchOption) {
         return REPO_SEARCH_API_URL
@@ -34,18 +29,18 @@ public class GitHubProjectCollector {
                 + "/" + projectName + GitHubProjectCollector.REPO_DOWNLOAD_API_URL_SUFFIX;
     }
 
-    public static JSONObject searchPublicProjects(SearchOption searchOption) throws IOException, ParseException {
+    public static JSONObject searchProjects(SearchOption searchOption) throws IOException, ParseException {
         String url = GitHubProjectCollector.constructRepositorySearchUrl(searchOption);
         Response res = GitHubRESTAPI.get(url);
 
         return (JSONObject) (new JSONParser()).parse(res.body().string());
     }
 
-    public static void downloadPublicProjects(SearchOption searchOption, String destination) {
+    public static void downloadProjects(SearchOption searchOption, String destination) {
         JSONObject jsonObject;
 
         try {
-            jsonObject = searchPublicProjects(searchOption);
+            jsonObject = searchProjects(searchOption);
         } catch (IOException | ParseException e) {
             e.printStackTrace();
             return;
@@ -56,10 +51,6 @@ public class GitHubProjectCollector {
 
         for (int i = 0; i < totalCountOfSearchResults / 3; i++) {
             JSONObject project = (JSONObject) projects.get(i);
-
-            if (GitHubProjectCollector.isPrivate(project))
-                continue;
-
             JSONObject ownerInfo = (JSONObject) project.get("owner");
             String owner = (String) ownerInfo.get("login");
             String projectName = (String) project.get("name");
@@ -71,10 +62,10 @@ public class GitHubProjectCollector {
 
     public static void main(String[] args) {
         SearchOption searchOption = new SearchOption.Builder()
-                .q("stars:>=100+language:c+language:csharp+language:cpp")
+                .q("stars:>=100+language:c+language:csharp+language:cpp+is:public")
                 .sort("stars")
                 .order("desc")
                 .build();
-        GitHubProjectCollector.downloadPublicProjects(searchOption, "project");
+        GitHubProjectCollector.downloadProjects(searchOption, "project");
     }
 }
