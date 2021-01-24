@@ -19,12 +19,12 @@ public class GitHubRESTAPI {
         return res;
     }
 
-    public static void downloadRepository(String owner, String projectName, String dir, String fileName) {
-        String downloadUrl = GitHubProjectCollector.REPO_DOWNLOAD_API_URL_PREFIX + owner + "/" + projectName + GitHubProjectCollector.REPO_DOWNLOAD_API_URL_SUFFIX;
-        downloadRepository(downloadUrl, dir, fileName);
+    public static void downloadProject(String owner, String projectName, String dir, String fileName) {
+        String downloadUrl = GitHubProjectCollector.PROJECT_DOWNLOAD_API_URL_PREFIX + owner + "/" + projectName + GitHubProjectCollector.PROJECT_DOWNLOAD_API_URL_SUFFIX;
+        downloadProject(downloadUrl, dir, fileName);
     }
 
-    public static void downloadRepository(String url, String dir, String fileName) {
+    public static void downloadProject(String url, String dir, String fileName) {
         Response res = GitHubRESTAPI.get(url);
         String fileUrl = res.request().url().toString();
 

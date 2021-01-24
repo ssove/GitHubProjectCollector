@@ -9,14 +9,14 @@ import java.io.IOException;
 public class GitHubProjectCollector {
     public static final String API_SERVER = "https://api.github.com";
     public static final String SEARCH_API_URL = API_SERVER + "/search";
-    public static final String REPO_SEARCH_API_URL = SEARCH_API_URL + "/repositories";
-    public static final String REPO_DOWNLOAD_API_URL_PREFIX = API_SERVER + "/repos/";
-    public static final String REPO_DOWNLOAD_API_URL_SUFFIX = "/tarball/";
+    public static final String PROJECT_SEARCH_API_URL = SEARCH_API_URL + "/repositories";
+    public static final String PROJECT_DOWNLOAD_API_URL_PREFIX = API_SERVER + "/repos/";
+    public static final String PROJECT_DOWNLOAD_API_URL_SUFFIX = "/tarball/";
     public static final int MAX_REQUEST_PER_MIN = 30;
 
 
-    public static String constructRepositorySearchUrl(SearchOption searchOption) {
-        return REPO_SEARCH_API_URL
+    public static String constructProjectSearchUrl(SearchOption searchOption) {
+        return PROJECT_SEARCH_API_URL
                 + "?q="         + searchOption.q()
                 + "&sort="      + searchOption.sort()
                 + "&order="     + searchOption.order()
@@ -24,48 +24,26 @@ public class GitHubProjectCollector {
                 + "&page="      + searchOption.page();
     }
 
-    public static String constructRepositoryDownloadUrl(String owner, String projectName) {
-        return GitHubProjectCollector.REPO_DOWNLOAD_API_URL_PREFIX + owner
-                + "/" + projectName + GitHubProjectCollector.REPO_DOWNLOAD_API_URL_SUFFIX;
+    public static String constructProjectDownloadUrl(String fullNameOfProject) {
+        return GitHubProjectCollector.PROJECT_DOWNLOAD_API_URL_PREFIX + fullNameOfProject
+                + GitHubProjectCollector.PROJECT_DOWNLOAD_API_URL_SUFFIX;
     }
 
     public static JSONObject searchProjects(SearchOption searchOption) throws IOException, ParseException {
-        String url = GitHubProjectCollector.constructRepositorySearchUrl(searchOption);
+        String url = GitHubProjectCollector.constructProjectSearchUrl(searchOption);
         Response res = GitHubRESTAPI.get(url);
 
         return (JSONObject) (new JSONParser()).parse(res.body().string());
     }
 
-    public static void downloadProjects(SearchOption searchOption, String destination) {
-        JSONObject jsonObject;
+    public static String getFullNameOfProject(JSONObject projectInfo) {
+        JSONObject ownerInfo = (JSONObject) projectInfo.get("owner");
 
-        try {
-            jsonObject = searchProjects(searchOption);
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        Long totalCountOfSearchResults = (Long) jsonObject.get("total_count");
-        JSONArray projects = (JSONArray) jsonObject.get("items");
-
-        for (int i = 0; i < totalCountOfSearchResults / 3; i++) {
-            JSONObject project = (JSONObject) projects.get(i);
-            JSONObject ownerInfo = (JSONObject) project.get("owner");
-            String owner = (String) ownerInfo.get("login");
-            String projectName = (String) project.get("name");
-            String url = constructRepositoryDownloadUrl(owner, projectName);
-
-            GitHubRESTAPI.downloadRepository(url, destination, projectName + ".zip");
-        }
+        return (String) ownerInfo.get("login") + "/" + (String) projectInfo.get("name");
     }
 
-    public static void main(String[] args) {
-        SearchOption searchOption = new SearchOption.Builder()
-                .q("stars:>=100+language:c+language:csharp+language:cpp+is:public")
-                .sort("stars")
-                .order("desc")
-                .build();
-        GitHubProjectCollector.downloadProjects(searchOption, "project");
+    public static void downloadProject(String fullNameOfProject, String destination) {
+        String url = constructProjectDownloadUrl(fullNameOfProject);
+        GitHubRESTAPI.downloadProject(url, destination, fullNameOfProject.substring(fullNameOfProject.lastIndexOf("/")) + ".zip");
     }
 }
